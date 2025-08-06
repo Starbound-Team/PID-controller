@@ -1,0 +1,40 @@
+pid_parameters:
+  attitude:
+    roll:
+      kp: 1.0
+      ki: 0.1
+      kd: 0.05
+    pitch:
+      kp: 1.0
+      ki: 0.1
+      kd: 0.05
+    yaw:
+      kp: 1.0
+      ki: 0.1
+      kd: 0.05
+  position:
+    x:
+      kp: 1.0
+      ki: 0.1
+      kd: 0.05
+    y:
+      kp: 1.0
+      ki: 0.1
+      kd: 0.05
+    z:
+      kp: 1.0
+      ki: 0.1
+      kd: 0.05
+  velocity:
+    vx:
+      kp: 1.0
+      ki: 0.1
+      kd: 0.05
+    vy:
+      kp: 1.0
+      ki: 0.1
+      kd: 0.05
+    vz:
+      kp: 1.0
+      ki: 0.1
+      kd: 0.05

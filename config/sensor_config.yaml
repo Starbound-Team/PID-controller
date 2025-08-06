@@ -1,0 +1,17 @@
+sensor:
+  imu:
+    type: "MPU6050"
+    update_rate: 100 # Hz
+    calibration:
+      gyro_bias: [0.0, 0.0, 0.0]
+      accel_bias: [0.0, 0.0, 0.0]
+  gps:
+    type: "NEO-6M"
+    update_rate: 1 # Hz
+    baud_rate: 9600 # bps
+  airspeed:
+    type: "MS4525"
+    update_rate: 50 # Hz
+    calibration:
+      offset: 0.0 # m/s
+      scale: 1.0 # m/s

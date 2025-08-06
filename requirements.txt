@@ -1,0 +1,8 @@
+numpy
+scipy
+matplotlib
+pyyaml
+pytest
+RPi.GPIO; platform_system=="Linux"
+fake-rpi; platform_system!="Linux"
+smbus2; platform_system=="Linux"

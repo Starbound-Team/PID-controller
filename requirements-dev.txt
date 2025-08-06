@@ -1,0 +1,7 @@
+numpy
+scipy
+matplotlib
+pyyaml
+pytest
+# RPi.GPIO - Only for Raspberry Pi
+# smbus2 - Only for Raspberry Pi hardware
