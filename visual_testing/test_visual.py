@@ -4,6 +4,8 @@ Visual testing script for PID controller performance
 """
 
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")  # headless backend for automated test environment
 import matplotlib.pyplot as plt
 from controllers.pid_controller import PIDController
 from controllers.attitude_controller import AttitudeController
