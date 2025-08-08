@@ -5,9 +5,9 @@ Visual testing script for PID controller performance
 
 import numpy as np
 import matplotlib.pyplot as plt
-from src.controllers.pid_controller import PIDController
-from src.controllers.attitude_controller import AttitudeController
-from src.controllers.position_controller import PositionController
+from controllers.pid_controller import PIDController
+from controllers.attitude_controller import AttitudeController
+from controllers.position_controller import PositionController
 
 
 def test_step_response():

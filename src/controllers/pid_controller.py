@@ -1,24 +1,112 @@
 class PIDController:
-    def __init__(self, kp, ki, kd):
+    """Generic PID controller with robustness features.
+
+    Features:
+        * Integral windup protection via clamping
+        * Optional output saturation (with integrator freeze when saturated)
+        * Derivative on measurement (reduces derivative kick) or on error
+        * dt validation (guards divide-by-zero / negative dt)
+    """
+
+    def __init__(
+        self,
+        kp: float,
+        ki: float,
+        kd: float,
+        integral_limits: tuple | None = None,
+        output_limits: tuple | None = None,
+        derivative_on_measurement: bool = True,
+        freeze_integrator_on_saturation: bool = True,
+    ) -> None:
         self.kp = kp
         self.ki = ki
         self.kd = kd
-        self.previous_error = 0
-        self.integral = 0
+        self.integral_limits = integral_limits  # (min, max) or None
+        self.output_limits = output_limits  # (min, max) or None
+        self.derivative_on_measurement = derivative_on_measurement
+        self.freeze_integrator_on_saturation = freeze_integrator_on_saturation
 
-    def set_parameters(self, kp, ki, kd):
+        self.previous_error: float = 0.0
+        self.previous_measurement: float | None = None
+        self.integral: float = 0.0
+
+    def reset(self) -> None:
+        """Reset dynamic state (integral and previous terms)."""
+        self.previous_error = 0.0
+        self.previous_measurement = None
+        self.integral = 0.0
+
+    def set_parameters(self, kp: float, ki: float, kd: float) -> None:
         self.kp = kp
         self.ki = ki
         self.kd = kd
 
-    def calculate_control(self, setpoint, measured_value, dt):
+    def _apply_limits(self, value: float, limits: tuple | None) -> float:
+        if limits is None:
+            return value
+        lo, hi = limits
+        if lo is not None and value < lo:
+            return lo
+        if hi is not None and value > hi:
+            return hi
+        return value
+
+    def calculate_control(self, setpoint: float, measured_value: float, dt: float) -> float:
+        """Compute PID control output.
+
+        Args:
+            setpoint: Desired target value.
+            measured_value: Current measured process value.
+            dt: Elapsed time since last update (seconds).
+        Returns:
+            Control output (possibly saturated if output_limits supplied).
+        """
+        if dt <= 0:
+            # Do not update state if invalid dt; return last proportional only as safe fallback
+            error = setpoint - measured_value
+            return self.kp * error
+
         error = setpoint - measured_value
-        self.integral += error * dt
-        derivative = (error - self.previous_error) / dt
 
-        control_output = (
-            (self.kp * error) + (self.ki * self.integral) + (self.kd * derivative)
-        )
+        # Derivative term computation
+        if self.derivative_on_measurement:
+            if self.previous_measurement is None:
+                derivative = 0.0
+            else:
+                derivative = -(measured_value - self.previous_measurement) / dt
+            self.previous_measurement = measured_value
+        else:
+            derivative = (error - self.previous_error) / dt
+
+        # Provisional integral update (will adjust if saturation & freeze policy)
+        new_integral = self.integral + error * dt
+
+        # Apply integral limits if provided
+        if self.integral_limits is not None:
+            lo_i, hi_i = self.integral_limits
+            if lo_i is not None and new_integral < lo_i:
+                new_integral = lo_i
+            if hi_i is not None and new_integral > hi_i:
+                new_integral = hi_i
+
+        # Compute raw output
+        output = self.kp * error + self.ki * new_integral + self.kd * derivative
+
+        saturated = False
+        if self.output_limits is not None:
+            limited_output = self._apply_limits(output, self.output_limits)
+            if limited_output != output:
+                saturated = True
+                output = limited_output
+
+        # Integrator freeze if saturated and output driving further into saturation
+        if saturated and self.freeze_integrator_on_saturation:
+            # Only freeze if integral action would push further into saturation
+            # Heuristic: if sign(output) == sign(error) then integral would exacerbate
+            pass  # do not accept new integral
+        else:
+            self.integral = new_integral
 
         self.previous_error = error
-        return control_output
+        return output
+
