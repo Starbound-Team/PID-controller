@@ -1,26 +1,26 @@
-class PIDController:
-    def __init__(self, kp, ki, kd):
-        self.kp = kp
-        self.ki = ki
-        self.kd = kd
-        self.integral = 0
-        self.previous_error = 0
-
-    def update(self, setpoint, measured_value, dt):
-        error = setpoint - measured_value
-        self.integral += error * dt
-        derivative = (error - self.previous_error) / dt
-        output = self.kp * error + self.ki * self.integral + self.kd * derivative
-        self.previous_error = error
-        return output
+from .pid_controller import PIDController
 
 
-class PositionController(PIDController):
-    def __init__(self, kp, ki, kd):
-        super().__init__(kp, ki, kd)
+class PositionController:
+    """3-axis position controller (x,y,z) using enhanced PID controllers."""
 
-    def control(self, target_position, current_position, dt):
-        control_x = super().update(target_position[0], current_position[0], dt)
-        control_y = super().update(target_position[1], current_position[1], dt)
-        control_z = super().update(target_position[2], current_position[2], dt)
-        return control_x, control_y, control_z
+    def __init__(self, x_params: dict, y_params: dict, z_params: dict) -> None:
+        self.x = PIDController(**x_params)
+        self.y = PIDController(**y_params)
+        self.z = PIDController(**z_params)
+
+    def control(
+        self,
+        x_setpoint: float,
+        x_measured: float,
+        y_setpoint: float,
+        y_measured: float,
+        z_setpoint: float,
+        z_measured: float,
+        dt: float,
+    ):
+        return (
+            self.x.calculate_control(x_setpoint, x_measured, dt),
+            self.y.calculate_control(y_setpoint, y_measured, dt),
+            self.z.calculate_control(z_setpoint, z_measured, dt),
+        )

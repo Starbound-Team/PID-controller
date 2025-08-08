@@ -22,17 +22,8 @@ class TestPIDController(unittest.TestCase):
 
 class TestAttitudeController(unittest.TestCase):
     def setUp(self):
-        self.attitude_controller = AttitudeController(
-            1.0,
-            0.1,
-            0.05,  # roll gains
-            1.0,
-            0.1,
-            0.05,  # pitch gains
-            1.0,
-            0.1,
-            0.05,  # yaw gains
-        )
+        common = dict(kp=1.0, ki=0.1, kd=0.05, integral_limits=(-1, 1), output_limits=(-2, 2))
+        self.attitude_controller = AttitudeController(common, common, common)
 
     def test_roll_control(self):
         output = self.attitude_controller.control(10.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.1)
@@ -52,21 +43,21 @@ class TestAttitudeController(unittest.TestCase):
 
 class TestPositionController(unittest.TestCase):
     def setUp(self):
-        self.position_controller = PositionController(1.0, 0.1, 0.05)
+        params = dict(kp=1.0, ki=0.1, kd=0.05)
+        self.position_controller = PositionController(params, params, params)
 
     def test_position_control(self):
-        target_pos = [10.0, 5.0, 2.0]
-        current_pos = [8.0, 3.0, 1.0]
-        output = self.position_controller.control(target_pos, current_pos, 0.1)
+        output = self.position_controller.control(10.0, 8.0, 5.0, 3.0, 2.0, 1.0, 0.1)
         self.assertIsInstance(output, tuple)
 
 
 class TestVelocityController(unittest.TestCase):
     def setUp(self):
-        self.velocity_controller = VelocityController(1.0, 0.1, 0.05)
+        params = dict(kp=1.0, ki=0.1, kd=0.05)
+        self.velocity_controller = VelocityController(params)
 
     def test_velocity_control(self):
-        output = self.velocity_controller.control_velocity(10.0, 5.0, 2.0)
+        output = self.velocity_controller.control_velocity(10.0, 5.0, 0.1)
         self.assertIsInstance(output, float)
 
 

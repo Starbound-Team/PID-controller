@@ -43,3 +43,9 @@ def plot_step_response(t, response):
     plt.ylabel("Response")
     plt.grid()
     plt.show()
+
+
+def conduct_step_response_test():
+    """Legacy test wrapper: produce step response of a canonical first-order system."""
+    t, r = step_response(( [1.0], [1.0, 1.0] ))
+    return r

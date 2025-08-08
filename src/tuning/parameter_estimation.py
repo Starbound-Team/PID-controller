@@ -36,3 +36,14 @@ def refine_parameters(current_params, performance_metrics):
     # Implement logic to adjust refined_params based on performance_metrics
 
     return refined_params
+
+
+# Backwards-compatible simple wrapper expected by tests
+def estimate_parameters():
+    """Legacy wrapper returning generic initial PID parameters.
+
+    Returns keys with capitalized form to maintain consistency with existing
+    placeholder functions.
+    """
+    base = estimate_initial_parameters({}, {})
+    return base

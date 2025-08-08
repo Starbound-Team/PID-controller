@@ -17,6 +17,7 @@ class PIDController:
         output_limits: tuple | None = None,
         derivative_on_measurement: bool = True,
         freeze_integrator_on_saturation: bool = True,
+        derivative_filter_tau: float | None = None,
     ) -> None:
         self.kp = kp
         self.ki = ki
@@ -25,10 +26,11 @@ class PIDController:
         self.output_limits = output_limits  # (min, max) or None
         self.derivative_on_measurement = derivative_on_measurement
         self.freeze_integrator_on_saturation = freeze_integrator_on_saturation
+        self.derivative_filter_tau = derivative_filter_tau  # seconds (time constant)
 
-        self.previous_error: float = 0.0
-        self.previous_measurement: float | None = None
-        self.integral: float = 0.0
+        self.previous_error = 0.0
+        self.previous_measurement = None
+        self.integral = 0.0
 
     def reset(self) -> None:
         """Reset dynamic state (integral and previous terms)."""
@@ -69,14 +71,27 @@ class PIDController:
         error = setpoint - measured_value
 
         # Derivative term computation
+    # Derivative term computation
         if self.derivative_on_measurement:
             if self.previous_measurement is None:
-                derivative = 0.0
+                raw_derivative = 0.0
             else:
-                derivative = -(measured_value - self.previous_measurement) / dt
+                raw_derivative = -(measured_value - self.previous_measurement) / dt
             self.previous_measurement = measured_value
         else:
-            derivative = (error - self.previous_error) / dt
+            raw_derivative = (error - self.previous_error) / dt
+
+        # Optional first-order low-pass filter on derivative term: D_f = D_f + alpha*(raw - D_f)
+        if self.derivative_filter_tau and self.derivative_filter_tau > 0:
+            if not hasattr(self, "_derivative_filtered"):
+                self._derivative_filtered = raw_derivative
+            alpha = dt / (self.derivative_filter_tau + dt)
+            self._derivative_filtered = self._derivative_filtered + alpha * (
+                raw_derivative - self._derivative_filtered
+            )
+            derivative = self._derivative_filtered
+        else:
+            derivative = raw_derivative
 
         # Provisional integral update (will adjust if saturation & freeze policy)
         new_integral = self.integral + error * dt
@@ -99,12 +114,25 @@ class PIDController:
                 saturated = True
                 output = limited_output
 
-        # Integrator freeze if saturated and output driving further into saturation
-        if saturated and self.freeze_integrator_on_saturation:
-            # Only freeze if integral action would push further into saturation
-            # Heuristic: if sign(output) == sign(error) then integral would exacerbate
-            pass  # do not accept new integral
-        else:
+        # Decide integrator acceptance
+        accept_integral = True
+        if (
+            saturated
+            and self.freeze_integrator_on_saturation
+            and self.ki != 0.0
+        ):
+            # Predict unsaturated output contribution signs
+            proportional = self.kp * error
+            integral_contrib = self.ki * new_integral
+            derivative_contrib = self.kd * derivative
+            # If integral contribution has same sign as (output - limited_output) we freeze
+            if self.output_limits is not None:
+                lo, hi = self.output_limits
+                if hi is not None and output >= hi and integral_contrib > 0:
+                    accept_integral = False
+                if lo is not None and output <= lo and integral_contrib < 0:
+                    accept_integral = False
+        if accept_integral:
             self.integral = new_integral
 
         self.previous_error = error

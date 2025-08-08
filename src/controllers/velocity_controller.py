@@ -1,23 +1,11 @@
-class PIDController:
-    def __init__(self, kp, ki, kd):
-        self.kp = kp
-        self.ki = ki
-        self.kd = kd
-        self.previous_error = 0
-        self.integral = 0
-
-    def calculate(self, setpoint, measured_value, dt):
-        error = setpoint - measured_value
-        self.integral += error * dt
-        derivative = (error - self.previous_error) / dt
-        output = self.kp * error + self.ki * self.integral + self.kd * derivative
-        self.previous_error = error
-        return output
+from .pid_controller import PIDController
 
 
-class VelocityController(PIDController):
-    def __init__(self, kp, ki, kd):
-        super().__init__(kp, ki, kd)
+class VelocityController:
+    """Single-axis velocity controller using enhanced PIDController."""
 
-    def control_velocity(self, setpoint_velocity, current_velocity, dt):
-        return self.calculate(setpoint_velocity, current_velocity, dt)
+    def __init__(self, params: dict) -> None:
+        self.pid = PIDController(**params)
+
+    def control_velocity(self, setpoint_velocity: float, current_velocity: float, dt: float):
+        return self.pid.calculate_control(setpoint_velocity, current_velocity, dt)

@@ -78,17 +78,8 @@ def test_attitude_controller_visual():
     """Visual test for attitude controller"""
 
     # Create attitude controller
-    attitude_controller = AttitudeController(
-        1.0,
-        0.1,
-        0.05,  # roll gains
-        1.0,
-        0.1,
-        0.05,  # pitch gains
-        1.0,
-        0.1,
-        0.05,  # yaw gains
-    )
+    common = dict(kp=1.0, ki=0.1, kd=0.05)
+    attitude_controller = AttitudeController(common, common, common)
 
     # Simulation parameters
     dt = 0.01

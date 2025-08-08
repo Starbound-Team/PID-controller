@@ -1,50 +1,31 @@
-class PIDController:
-    def __init__(self, kp, ki, kd):
-        self.kp = kp
-        self.ki = ki
-        self.kd = kd
-        self.previous_error = 0
-        self.integral = 0
-
-    def calculate(self, setpoint, measured_value, dt):
-        error = setpoint - measured_value
-        self.integral += error * dt
-        derivative = (error - self.previous_error) / dt
-        output = self.kp * error + self.ki * self.integral + self.kd * derivative
-        self.previous_error = error
-        return output
+from .pid_controller import PIDController
 
 
-class AttitudeController(PIDController):
+class AttitudeController:
+    """Composite attitude controller managing roll, pitch, yaw using enhanced PID controllers."""
+
     def __init__(
         self,
-        kp_roll,
-        ki_roll,
-        kd_roll,
-        kp_pitch,
-        ki_pitch,
-        kd_pitch,
-        kp_yaw,
-        ki_yaw,
-        kd_yaw,
-    ):
-        super().__init__(kp_roll, ki_roll, kd_roll)
-        self.pitch_controller = PIDController(kp_pitch, ki_pitch, kd_pitch)
-        self.yaw_controller = PIDController(kp_yaw, ki_yaw, kd_yaw)
+        roll_params: dict,
+        pitch_params: dict,
+        yaw_params: dict,
+    ) -> None:
+        self.roll = PIDController(**roll_params)
+        self.pitch = PIDController(**pitch_params)
+        self.yaw = PIDController(**yaw_params)
 
     def control(
         self,
-        roll_setpoint,
-        roll_measured,
-        pitch_setpoint,
-        pitch_measured,
-        yaw_setpoint,
-        yaw_measured,
-        dt,
+        roll_setpoint: float,
+        roll_measured: float,
+        pitch_setpoint: float,
+        pitch_measured: float,
+        yaw_setpoint: float,
+        yaw_measured: float,
+        dt: float,
     ):
-        roll_output = self.calculate(roll_setpoint, roll_measured, dt)
-        pitch_output = self.pitch_controller.calculate(
-            pitch_setpoint, pitch_measured, dt
+        return (
+            self.roll.calculate_control(roll_setpoint, roll_measured, dt),
+            self.pitch.calculate_control(pitch_setpoint, pitch_measured, dt),
+            self.yaw.calculate_control(yaw_setpoint, yaw_measured, dt),
         )
-        yaw_output = self.yaw_controller.calculate(yaw_setpoint, yaw_measured, dt)
-        return roll_output, pitch_output, yaw_output

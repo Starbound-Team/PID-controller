@@ -1,7 +1,8 @@
 class Airspeed:
-    def __init__(self, sensor_pin):
+    def __init__(self, sensor_pin: int = 0):
         self.sensor_pin = sensor_pin
         self.airspeed = 0.0
+        self._initialized = True
 
     def read_airspeed(self):
         # Placeholder for actual sensor reading logic
@@ -16,3 +17,10 @@ class Airspeed:
 
     def get_airspeed(self):
         return self.read_airspeed()
+
+    # Additional helper methods to align with test expectations
+    def is_initialized(self) -> bool:
+        return self._initialized
+
+    def get_data(self):
+        return {"speed": self.get_airspeed()}
