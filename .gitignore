@@ -218,3 +218,5 @@ flight_logs/
 # PID tuning data
 tuning_data/
 parameter_sweeps/
+
+explained.md

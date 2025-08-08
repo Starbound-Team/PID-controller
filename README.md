@@ -4,7 +4,7 @@ This project implements a comprehensive PID controller system for a fixed-wing V
 
 ## Project Structure
 
-```
+```text
 drone-pid-controller/
 ├── src/
 │   ├── controllers/          # PID controller implementations
@@ -22,18 +22,22 @@ drone-pid-controller/
 │   │   ├── __init__.py
 │   │   ├── parameter_estimation.py
 │   │   ├── performance_analyzer.py
+│   │   ├── performance_metrics.py   # KPI utilities (settling time, overshoot, etc.)
+│   │   ├── ultimate_gain_finder.py  # Ku / Pu sweep (Ziegler–Nichols start)
 │   │   └── step_response.py
 │   ├── utils/               # Utility functions
 │   │   ├── __init__.py
 │   │   ├── config.py        # Configuration management
 │   │   └── data_logger.py   # Data logging utilities
 │   └── main.py              # Main application entry point
-├── tests/                   # Unit tests
+├── tests/                   # Automated tests
 │   ├── __init__.py
-│   ├── test_controllers.py  # Controller unit tests
-│   ├── test_sensors.py      # Sensor tests
-│   └── test_tuning.py       # Tuning algorithm tests
-├── visual_testing/          # Visual testing and analysis
+│   ├── test_controllers.py        # Controller API & basic behavior
+│   ├── test_pid_enhanced.py       # Enhanced PID robustness (limits, filter, freeze)
+│   ├── test_performance_metrics.py# KPI regression tests
+│   ├── test_sensors.py            # Sensor interface tests
+│   └── test_tuning.py             # Legacy wrappers / placeholders
+├── visual_testing/          # Visual testing and analysis (headless-capable)
 │   ├── __init__.py
 │   ├── test_visual.py       # Static visual tests
 │   └── interactive_tuner.py # Interactive PID tuning tool
@@ -53,36 +57,52 @@ drone-pid-controller/
 
 ## Features
 
-- **Multi-Axis PID Control**: 
-  - Attitude control (roll, pitch, yaw)
-  - Position control (x, y, z coordinates)
-  - Velocity control for smooth flight dynamics
-- **Sensor Integration**: 
-  - IMU (Inertial Measurement Unit) for attitude sensing
-  - GPS for position tracking
-  - Airspeed sensors for velocity measurement
-- **Advanced Tuning Tools**:
-  - Interactive real-time parameter tuning
-  - Visual step response analysis
-  - Performance metrics calculation
-  - Parameter comparison tools
-- **Cross-Platform Development**:
-  - Windows development environment support
-  - Raspberry Pi deployment ready
-  - Mock hardware interfaces for testing
-- **Comprehensive Testing**:
-  - Unit tests for all controllers
-  - Visual testing with matplotlib plots
-  - Interactive tuning interface
-- **Professional Package Structure**:
-  - Installable Python package
-  - Proper dependency management
-  - Documentation and examples
+### Control & Architecture
+
+- Layered controllers: Attitude (roll/pitch/yaw), Position (x/y/z), Velocity
+- Unified enhanced PID core reused across all axes
+
+### Robust PID Enhancements
+
+- Integral windup protection (configurable clamp)
+- Output saturation with optional integrator freeze
+- Derivative on measurement vs. error (anti-kick)
+- Optional derivative low-pass filter (`derivative_filter_tau`)
+- Config-driven per-axis limits & filtering
+- dt validation / safe fallback
+
+### Tuning & Analysis
+
+- Interactive slider-based tuning GUI
+- Headless visual regression (Agg backend) for CI
+- Automatic ultimate gain (Ku) & oscillation period (Pu) sweep (Ziegler–Nichols suggestions)
+- Reusable performance metrics (settling time, rise time, overshoot, steady-state error)
+- Step response & parameter comparison utilities
+
+### Sensors & Simulation
+
+- Mock IMU / GPS / Airspeed with consistent API for development & tests
+- Configurable YAML-based sensor and PID parameters
+
+### Packaging & Extras
+
+- Editable install with optional extras: `[tuning]`, `[hardware]`, `[dev]`, `[all]`
+- Cross-platform friendly (Windows dev, Raspberry Pi deploy)
+
+### Testing & Quality
+
+- 28 automated tests (controllers, enhanced PID, metrics, sensors, tuning, visuals)
+- Headless plots avoid GUI dependencies in CI
+
+### Documentation
+
+- Design, tuning methodology, performance analysis docs
+- Extended README with examples & configuration guidance
 
 ## Hardware Requirements
 
 - **Flight Computer**: Raspberry Pi 4 (recommended) or Raspberry Pi 3B+
-- **Sensors**: 
+- **Sensors**:
   - IMU (e.g., MPU-6050, MPU-9250)
   - GPS module (e.g., NEO-8M)
   - Airspeed sensor (optional, for advanced control)
@@ -173,6 +193,7 @@ python src/main.py
 The project includes comprehensive testing tools:
 
 ### Unit Tests
+
 - **Controller Tests**: Verify PID logic and calculations
 - **Sensor Tests**: Test sensor interfaces and data processing
 - **Integration Tests**: Test component interactions
@@ -189,6 +210,7 @@ python -m pytest tests/ --cov=src/controllers
 ```
 
 ### Visual Testing
+
 - **Step Response Analysis**: Visualize controller performance
 - **Parameter Comparison**: Compare different tuning approaches
 - **Real-time Plotting**: Monitor controller behavior
@@ -198,6 +220,7 @@ python visual_testing/test_visual.py
 ```
 
 ### Interactive Tuning
+
 - **Real-time Parameter Adjustment**: Slider-based tuning interface
 - **Live Response Visualization**: See changes immediately
 - **Performance Metrics**: Automatic calculation of key metrics
