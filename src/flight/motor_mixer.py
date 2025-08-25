@@ -64,6 +64,12 @@ class TriPropMixer:
         # Pre-compute mixing matrix for efficiency
         self._compute_mixing_matrix()
 
+        # Pre-allocate motor command objects to avoid GC pressure
+        self._motor_commands = [
+            MotorCommand(motor_id=i, throttle=0.0, armed=False)
+            for i in range(self.num_motors)
+        ]
+
     def _compute_mixing_matrix(self) -> None:
         """Compute the mixing matrix from control inputs to motor outputs."""
         # Control inputs: [thrust, roll_moment, pitch_moment, yaw_moment]
@@ -114,21 +120,20 @@ class TriPropMixer:
         # Apply mixing matrix
         motor_outputs = self.mix_matrix @ controls
 
-        # Apply thrust scaling and limits
-        motor_commands = []
+        # Reuse pre-allocated motor command objects
         for i, output in enumerate(motor_outputs):
+            cmd = self._motor_commands[i]
+            cmd.motor_id = i
+            cmd.armed = armed
+
             if armed and thrust > 0.01:
                 # Scale to throttle range and apply minimum
-                throttle = max(self.min_throttle, output * self.max_thrust)
+                cmd.throttle = max(self.min_throttle, output * self.max_thrust)
             else:
                 # Disarmed or zero thrust
-                throttle = 0.0
+                cmd.throttle = 0.0
 
-            motor_commands.append(
-                MotorCommand(motor_id=i, throttle=throttle, armed=armed)
-            )
-
-        return motor_commands
+        return self._motor_commands
 
     def get_mixing_matrix(self) -> np.ndarray:
         """Get the computed mixing matrix for analysis."""

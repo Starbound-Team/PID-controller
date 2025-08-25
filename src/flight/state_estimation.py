@@ -6,6 +6,7 @@ estimate using complementary filtering and sensor fusion techniques.
 
 from __future__ import annotations
 import time
+import threading
 import numpy as np
 from typing import Optional, Tuple, Dict, Any
 from dataclasses import dataclass
@@ -65,7 +66,8 @@ class StateEstimator:
         # Complementary filter parameters
         self.attitude_alpha = attitude_alpha  # Trust gyro over accel
 
-        # State
+        # State (protected by lock for thread safety)
+        self._state_lock = threading.RLock()
         self.state = VehicleState(timestamp=time.monotonic())
 
         # GPS processing
@@ -92,20 +94,21 @@ class StateEstimator:
         accel: Tuple[float, float, float],  # m/s² (x, y, z)
         timestamp: Optional[float] = None,
     ) -> None:
-        """Update state with IMU data using complementary filter."""
+        """Update state with IMU data using complementary filter (thread-safe)."""
         if timestamp is None:
             timestamp = time.monotonic()
 
-        dt = timestamp - self.prev_timestamp
-        if dt <= 0:
-            return
+        with self._state_lock:
+            dt = timestamp - self.prev_timestamp
+            if dt <= 0:
+                return
 
-        # Apply gyro bias correction
-        gyro_corrected = np.array(gyro) - self.gyro_bias
+            # Apply gyro bias correction
+            gyro_corrected = np.array(gyro) - self.gyro_bias
 
-        # Update angular rates
-        self.state.roll_rate = gyro_corrected[0]
-        self.state.pitch_rate = gyro_corrected[1]
+            # Update angular rates
+            self.state.roll_rate = gyro_corrected[0]
+            self.state.pitch_rate = gyro_corrected[1]
         self.state.yaw_rate = gyro_corrected[2]
 
         # Integrate gyro for attitude (high-frequency, drift prone)
@@ -222,5 +225,25 @@ class StateEstimator:
         )
 
     def get_state(self) -> VehicleState:
-        """Get current vehicle state estimate."""
-        return self.state
+        """Get current vehicle state estimate (thread-safe)."""
+        with self._state_lock:
+            # Return a copy to avoid race conditions
+            return VehicleState(
+                timestamp=self.state.timestamp,
+                roll=self.state.roll,
+                pitch=self.state.pitch,
+                yaw=self.state.yaw,
+                roll_rate=self.state.roll_rate,
+                pitch_rate=self.state.pitch_rate,
+                yaw_rate=self.state.yaw_rate,
+                x=self.state.x,
+                y=self.state.y,
+                z=self.state.z,
+                vx=self.state.vx,
+                vy=self.state.vy,
+                vz=self.state.vz,
+                altitude_agl=self.state.altitude_agl,
+                gps_fix=self.state.gps_fix,
+                num_satellites=self.state.num_satellites,
+                gps_accuracy=self.state.gps_accuracy,
+            )

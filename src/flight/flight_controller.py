@@ -90,6 +90,14 @@ class FlightController:
         self.loop_overruns = 0
         self.last_heartbeat = time.monotonic()
 
+        # Battery monitoring initialization
+        self._start_time = time.monotonic()
+
+        # Sensor reading optimization - cache sensor data
+        self._cached_sensor_data = None
+        self._last_sensor_read = 0.0
+        self._sensor_read_period = 1.0 / self.rates.attitude  # Read at attitude rate
+
         # Setup signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
@@ -136,8 +144,8 @@ class FlightController:
             print("Flight Controller: Running in simulation mode")
 
     def _init_timing(self) -> None:
-        """Initialize control loop timing."""
-        now = time.monotonic()
+        """Initialize control loop timing with absolute time references."""
+        self.base_time = time.monotonic()
 
         # Calculate loop periods
         self.attitude_period = 1.0 / self.rates.attitude
@@ -146,12 +154,12 @@ class FlightController:
         self.navigation_period = 1.0 / self.rates.navigation
         self.logging_period = 1.0 / self.rates.logging
 
-        # Initialize next execution times
-        self.next_attitude = now
-        self.next_altitude = now
-        self.next_position = now
-        self.next_navigation = now
-        self.next_logging = now
+        # Initialize cycle counters to prevent drift
+        self.attitude_cycle = 0
+        self.altitude_cycle = 0
+        self.position_cycle = 0
+        self.navigation_cycle = 0
+        self.logging_cycle = 0
 
     def _signal_handler(self, signum, frame) -> None:
         """Handle shutdown signals gracefully."""
@@ -181,6 +189,21 @@ class FlightController:
             return False
 
         return True
+
+    def _get_battery_voltage(self) -> float:
+        """Get current battery voltage."""
+        if self.hardware:
+            # In production, read from ADC or power management module
+            # For now, simulate battery discharge
+            import time
+
+            runtime = time.monotonic() - getattr(self, "_start_time", time.monotonic())
+            # Simulate gradual discharge: 12.6V -> 10.5V over 15 minutes
+            voltage = 12.6 - (runtime / 900) * 2.1  # 900 seconds = 15 minutes
+            return max(10.0, voltage)  # Don't go below 10V in simulation
+        else:
+            # Simulation mode - always good battery
+            return 12.0
 
     def _attitude_loop(self, state: VehicleState, dt: float) -> tuple:
         """High-rate attitude control loop."""
@@ -254,7 +277,15 @@ class FlightController:
 
         # Battery monitoring would go here
         # For now, assume battery is OK
-        battery_ok = True
+        battery_voltage = self._get_battery_voltage()
+        battery_ok = battery_voltage > self.safety.min_battery_voltage
+
+        if not battery_ok:
+            print(
+                f"CRITICAL: Battery voltage low: {battery_voltage:.1f}V < {self.safety.min_battery_voltage:.1f}V"
+            )
+            print("Initiating emergency landing sequence...")
+            self.flight_mode_manager.trigger_emergency()
 
         # Auto-disarm if in emergency mode too long
         if (
@@ -286,28 +317,33 @@ class FlightController:
             while time.monotonic() < end_time and not self.emergency_stop_requested:
                 loop_start = time.monotonic()
 
-                # Read sensors
-                if self.hardware:
-                    sensor_data = self.hardware.read_sensors()
+                # Read sensors at optimized rate (not every loop)
+                if (
+                    self.hardware
+                    and (loop_start - self._last_sensor_read)
+                    >= self._sensor_read_period
+                ):
+                    self._cached_sensor_data = self.hardware.read_sensors()
+                    self._last_sensor_read = loop_start
 
-                    # Update state estimation
-                    if sensor_data.get("imu_healthy", False):
+                    # Update state estimation with fresh sensor data
+                    if self._cached_sensor_data.get("imu_healthy", False):
                         self.state_estimator.update_imu(
-                            sensor_data["gyro"],
-                            sensor_data["accel"],
-                            sensor_data["timestamp"],
+                            self._cached_sensor_data["gyro"],
+                            self._cached_sensor_data["accel"],
+                            self._cached_sensor_data["timestamp"],
                         )
 
-                    if sensor_data.get("gps_healthy", False):
+                    if self._cached_sensor_data.get("gps_healthy", False):
                         self.state_estimator.update_gps(
-                            sensor_data["latitude"],
-                            sensor_data["longitude"],
-                            sensor_data["altitude"],
-                            sensor_data.get("velocity_ned"),
-                            sensor_data.get("fix_quality", 0),
-                            sensor_data.get("num_satellites", 0),
-                            sensor_data.get("accuracy", 999.0),
-                            sensor_data["timestamp"],
+                            self._cached_sensor_data["latitude"],
+                            self._cached_sensor_data["longitude"],
+                            self._cached_sensor_data["altitude"],
+                            self._cached_sensor_data.get("velocity_ned"),
+                            self._cached_sensor_data.get("fix_quality", 0),
+                            self._cached_sensor_data.get("num_satellites", 0),
+                            self._cached_sensor_data.get("accuracy", 999.0),
+                            self._cached_sensor_data["timestamp"],
                         )
                 else:
                     # Simulation mode - create synthetic sensor data
@@ -321,21 +357,24 @@ class FlightController:
                 # Get current state
                 state = self.state_estimator.get_state()
 
-                # Multi-rate control scheduling
+                # Multi-rate control scheduling with absolute timing
                 now = time.monotonic()
+                elapsed = now - self.base_time
 
-                # Attitude loop (highest rate)
-                if now >= self.next_attitude:
-                    dt = now - (self.next_attitude - self.attitude_period)
+                # Attitude loop (highest rate) - use cycle-based timing
+                attitude_due_cycle = int(elapsed / self.attitude_period)
+                if attitude_due_cycle > self.attitude_cycle:
+                    dt = self.attitude_period
                     roll_cmd, pitch_cmd, yaw_cmd = self._attitude_loop(state, dt)
-                    self.next_attitude += self.attitude_period
+                    self.attitude_cycle = attitude_due_cycle
 
                     # Get thrust from altitude loop (if due)
                     thrust_cmd = 0.5  # Default
-                    if now >= self.next_altitude:
-                        alt_dt = now - (self.next_altitude - self.altitude_period)
+                    altitude_due_cycle = int(elapsed / self.altitude_period)
+                    if altitude_due_cycle > self.altitude_cycle:
+                        alt_dt = self.altitude_period
                         thrust_cmd = self._altitude_loop(state, alt_dt)
-                        self.next_altitude += self.altitude_period
+                        self.altitude_cycle = altitude_due_cycle
 
                     # Mix controls and send to motors
                     motor_commands = self.motor_mixer.mix_controls(
@@ -352,19 +391,22 @@ class FlightController:
                         self.hardware.set_motor_outputs(motor_commands)
 
                 # Position loop (medium rate)
-                if now >= self.next_position:
-                    pos_dt = now - (self.next_position - self.position_period)
+                position_due_cycle = int(elapsed / self.position_period)
+                if position_due_cycle > self.position_cycle:
+                    pos_dt = self.position_period
                     x_cmd, y_cmd = self._position_loop(state, pos_dt)
-                    self.next_position += self.position_period
+                    self.position_cycle = position_due_cycle
 
                 # Navigation loop (lowest rate)
-                if now >= self.next_navigation:
-                    nav_dt = now - (self.next_navigation - self.navigation_period)
+                navigation_due_cycle = int(elapsed / self.navigation_period)
+                if navigation_due_cycle > self.navigation_cycle:
+                    nav_dt = self.navigation_period
                     self._navigation_loop(state, nav_dt)
-                    self.next_navigation += self.navigation_period
+                    self.navigation_cycle = navigation_due_cycle
 
                 # Data logging
-                if now >= self.next_logging:
+                logging_due_cycle = int(elapsed / self.logging_period)
+                if logging_due_cycle > self.logging_cycle:
                     log_data = {
                         "timestamp": now,
                         "mode": self.flight_mode_manager.current_mode.name,
@@ -372,7 +414,7 @@ class FlightController:
                         "loop_count": loop_count,
                     }
                     # self.data_logger.log(log_data)  # Uncomment when logger is ready
-                    self.next_logging += self.logging_period
+                    self.logging_cycle = logging_due_cycle
 
                 # Performance monitoring
                 loop_time = time.monotonic() - loop_start
@@ -394,8 +436,10 @@ class FlightController:
                     )
                     last_stats_time = now
 
-                # Small sleep to prevent CPU spinning
-                time.sleep(0.001)
+                # Yield CPU briefly only if loop is running too fast
+                loop_time = time.monotonic() - loop_start
+                if loop_time < 0.001:  # If loop completes in <1ms
+                    time.sleep(0.0001)  # Very brief yield (0.1ms)
 
         except KeyboardInterrupt:
             print("\nKeyboard interrupt received")
