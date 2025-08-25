@@ -12,23 +12,22 @@ def load_config(config_file):
 
 def get_pid_parameters():
     """Get PID parameters from the configuration file."""
-    config_path = (
-        Path(__file__).resolve().parent.parent / "config" / "pid_parameters.yaml"
-    )
+    root = Path(__file__).resolve().parent.parent.parent  # .../src/utils -> repo root
+    config_path = root / "config" / "pid_parameters.yaml"
     raw = load_config(config_path)
     return _normalize_pid_params(raw)
 
 
 def get_sensor_config():
     """Get sensor configuration settings from the configuration file."""
-    config_path = (
-        Path(__file__).resolve().parent.parent / "config" / "sensor_config.yaml"
-    )
+    root = Path(__file__).resolve().parent.parent.parent
+    config_path = root / "config" / "sensor_config.yaml"
     return load_config(config_path)
 
 
 def _normalize_pid_params(cfg: Dict[str, Any]) -> Dict[str, Any]:
     """Internal: ensure limit arrays are tuples for immutability and consistent downstream usage."""
+
     def convert(node):
         if isinstance(node, dict):
             for k, v in node.items():

@@ -4,82 +4,82 @@ pid_parameters:
       kp: 1.0
       ki: 0.1
       kd: 0.05
-  integral_limits: [-0.5, 0.5]
-  output_limits: [-1.0, 1.0]
-  derivative_filter_tau: 0.02
-  derivative_on_measurement: true
-  freeze_integrator_on_saturation: true
+      integral_limits: [-0.5, 0.5]
+      output_limits: [-1.0, 1.0]
+      derivative_filter_tau: 0.02
+      derivative_on_measurement: true
+      freeze_integrator_on_saturation: true
     pitch:
       kp: 1.0
       ki: 0.1
       kd: 0.05
-  integral_limits: [-0.5, 0.5]
-  output_limits: [-1.0, 1.0]
-  derivative_filter_tau: 0.02
-  derivative_on_measurement: true
-  freeze_integrator_on_saturation: true
+      integral_limits: [-0.5, 0.5]
+      output_limits: [-1.0, 1.0]
+      derivative_filter_tau: 0.02
+      derivative_on_measurement: true
+      freeze_integrator_on_saturation: true
     yaw:
       kp: 1.0
       ki: 0.1
       kd: 0.05
-  integral_limits: [-0.3, 0.3]
-  output_limits: [-0.8, 0.8]
-  derivative_filter_tau: 0.03
-  derivative_on_measurement: true
-  freeze_integrator_on_saturation: true
+      integral_limits: [-0.3, 0.3]
+      output_limits: [-0.8, 0.8]
+      derivative_filter_tau: 0.03
+      derivative_on_measurement: true
+      freeze_integrator_on_saturation: true
   position:
     x:
       kp: 1.0
       ki: 0.1
       kd: 0.05
-  integral_limits: [-1.0, 1.0]
-  output_limits: [-2.0, 2.0]
-  derivative_filter_tau: 0.05
-  derivative_on_measurement: true
-  freeze_integrator_on_saturation: true
+      integral_limits: [-1.0, 1.0]
+      output_limits: [-2.0, 2.0]
+      derivative_filter_tau: 0.05
+      derivative_on_measurement: true
+      freeze_integrator_on_saturation: true
     y:
       kp: 1.0
       ki: 0.1
       kd: 0.05
-  integral_limits: [-1.0, 1.0]
-  output_limits: [-2.0, 2.0]
-  derivative_filter_tau: 0.05
-  derivative_on_measurement: true
-  freeze_integrator_on_saturation: true
+      integral_limits: [-1.0, 1.0]
+      output_limits: [-2.0, 2.0]
+      derivative_filter_tau: 0.05
+      derivative_on_measurement: true
+      freeze_integrator_on_saturation: true
     z:
       kp: 1.0
       ki: 0.1
       kd: 0.05
-  integral_limits: [-1.0, 1.0]
-  output_limits: [-3.0, 3.0]
-  derivative_filter_tau: 0.05
-  derivative_on_measurement: true
-  freeze_integrator_on_saturation: true
+      integral_limits: [-1.0, 1.0]
+      output_limits: [-3.0, 3.0]
+      derivative_filter_tau: 0.05
+      derivative_on_measurement: true
+      freeze_integrator_on_saturation: true
   velocity:
     vx:
       kp: 1.0
       ki: 0.1
       kd: 0.05
-  integral_limits: [-0.4, 0.4]
-  output_limits: [-1.5, 1.5]
-  derivative_filter_tau: 0.02
-  derivative_on_measurement: true
-  freeze_integrator_on_saturation: true
+      integral_limits: [-0.4, 0.4]
+      output_limits: [-1.5, 1.5]
+      derivative_filter_tau: 0.02
+      derivative_on_measurement: true
+      freeze_integrator_on_saturation: true
     vy:
       kp: 1.0
       ki: 0.1
       kd: 0.05
-  integral_limits: [-0.4, 0.4]
-  output_limits: [-1.5, 1.5]
-  derivative_filter_tau: 0.02
-  derivative_on_measurement: true
-  freeze_integrator_on_saturation: true
+      integral_limits: [-0.4, 0.4]
+      output_limits: [-1.5, 1.5]
+      derivative_filter_tau: 0.02
+      derivative_on_measurement: true
+      freeze_integrator_on_saturation: true
     vz:
       kp: 1.0
       ki: 0.1
       kd: 0.05
-  integral_limits: [-0.6, 0.6]
-  output_limits: [-2.0, 2.0]
-  derivative_filter_tau: 0.025
-  derivative_on_measurement: true
-  freeze_integrator_on_saturation: true
+      integral_limits: [-0.6, 0.6]
+      output_limits: [-2.0, 2.0]
+      derivative_filter_tau: 0.025
+      derivative_on_measurement: true
+      freeze_integrator_on_saturation: true
