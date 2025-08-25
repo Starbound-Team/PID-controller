@@ -1,17 +1,44 @@
 sensor:
   imu:
     type: "MPU6050"
-    update_rate: 100 # Hz
+    i2c_address: 0x68
+    i2c_bus: 1
+    update_rate: 250 # Hz
     calibration:
       gyro_bias: [0.0, 0.0, 0.0]
       accel_bias: [0.0, 0.0, 0.0]
+      mag_bias: [0.0, 0.0, 0.0]
   gps:
-    type: "NEO-6M"
-    update_rate: 1 # Hz
-    baud_rate: 9600 # bps
-  airspeed:
-    type: "MS4525"
-    update_rate: 50 # Hz
-    calibration:
-      offset: 0.0 # m/s
-      scale: 1.0 # m/s
+    type: "UBLOX"
+    port: "/dev/ttyUSB0"
+    baud_rate: 38400
+    update_rate: 5 # Hz
+    timeout: 2.0 # seconds
+  pwm:
+    type: "PCA9685"
+    i2c_address: 0x40
+    frequency: 50 # Hz
+    pulse_min: 1000 # microseconds
+    pulse_max: 2000 # microseconds
+
+flight_control:
+  rates:
+    attitude_hz: 250
+    altitude_hz: 50
+    position_hz: 20
+    navigation_hz: 5
+    logging_hz: 10
+
+  safety:
+    max_tilt_deg: 30.0
+    max_climb_rate: 5.0
+    max_descent_rate: 3.0
+    min_battery_voltage: 10.8
+    max_loop_time_ms: 20.0
+    gps_required_accuracy_m: 5.0
+
+  motor_mixer:
+    type: "tri_prop"
+    arm_length_m: 0.25
+    hover_throttle: 0.5
+    min_throttle: 0.05

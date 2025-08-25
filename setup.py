@@ -24,6 +24,7 @@ setup(
             "RPi.GPIO>=0.7.0; platform_system=='Linux'",
             "fake-rpi>=0.7.0; platform_system!='Linux'",
             "smbus2>=0.4.0; platform_system=='Linux'",
+            "pyserial>=3.5",
         ],
         "dev": ["pytest>=6.0.0", "scipy>=1.7.0", "matplotlib>=3.3.0"],
         "all": [
@@ -32,6 +33,7 @@ setup(
             "RPi.GPIO>=0.7.0; platform_system=='Linux'",
             "fake-rpi>=0.7.0; platform_system!='Linux'",
             "smbus2>=0.4.0; platform_system=='Linux'",
+            "pyserial>=3.5",
             "pytest>=6.0.0",
         ],
     },
